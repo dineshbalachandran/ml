@@ -74,7 +74,7 @@ img {
 </div>
 <div id="feature-selection" class="section level4">
 <h4>Feature selection</h4>
-<p>The training dataset has around 19K rows and 160 columns, of these the first 7 are various “identifier” or bookeeping variables, the last column (classe) is the outcome we are interested in predicting.</p>
+<p>The training dataset has around 19K rows and 160 columns, of these the first 7 are various “identifier” or book-keeping variables, the last column (classe) is the outcome we are interested in predicting.</p>
 <p>The rest 152, are potential predictors.</p>
 <p>To reduce this, we find that some of the variables have values only when the new_window column equals “yes”. We can eliminate these columns from the potential predictor list as they are not likely to influence the outcome and contribute only around 400 rows, a small number.</p>
 <p>Then, of the potential predictors remaining, linear combinations in them are checked for any further reduction. The findLinearCombos does not report any linearity among the columns.</p>
@@ -82,7 +82,7 @@ img {
 <pre><code>## [1] 19622   160</code></pre>
 <pre><code>## [1] &quot;Rows where new_window==yes: 406&quot;
 ## [1] &quot;Rows where new_window!=yes where the columns eliminated have valid values (should be zero): 0&quot;</code></pre>
-<pre><code>## [1] &quot;No linear combinations exist within in the predictors.&quot;</code></pre>
+<pre><code>## [1] &quot;No linear combinations exist within the predictors.&quot;</code></pre>
 </div>
 <div id="data-splitting" class="section level4">
 <h4>Data splitting</h4>
