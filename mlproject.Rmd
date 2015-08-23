@@ -1,0 +1,154 @@
+---
+title: "Machine Learning project"
+output: html_document
+---
+
+#### Summary
+The goal for the project is to predict using machine learning models the manner of exercise by the subjects in the test data set. 
+
+The outcome "manner of exercise" is qualitative, therefore classification models like decision tree, random forests were considered and tuned to predict the outcome based on supplied training dataset. 
+
+Based on the training applications carried out, a random forest based model gave an accuracy of close to 99% when validated against a test dataset carved out from the training dataset. 
+
+```{r cache=TRUE, echo=FALSE}
+dataset <- read.csv("pml-training.csv")
+```
+
+```{r echo=FALSE, warning=FALSE}
+library(caret)
+
+#categorize the columns for feature selection
+identifiers <- 1:7   # the first seven identify the observation (row)
+
+predictors <- c(8:11, 37:49, 60:68, 84:86, 102, 113:124, 140, 151:159) 
+          #potential predictors
+
+outcome <- 160   #the outcome column
+```
+
+#### Feature selection
+The training dataset has around 19K rows and 160 columns, of these the first 7 are various "identifier" or bookeeping variables, the last column (classe) is the outcome we are interested in predicting. 
+
+The rest 152, are potential predictors. 
+
+To reduce this, we find that some of the variables have values only when the new_window column equals "yes". We can eliminate these columns from the potential predictor list as they are not likely to influence the outcome and contribute only around 400 rows, a small number.
+
+Then, of the potential predictors remaining, linear combinations in them are checked for any further reduction. The findLinearCombos does not report any linearity among the columns.
+
+We will then evaluate the models using the dataset containing only the outcome and the predictors, i.e. 1 outcome and 52 predictors.
+
+```{r echo=FALSE, warning=FALSE}
+# The columns that are not part of the above categories, have values only when 
+# the condition new_window equals "yes".
+
+# Verifying below that for instances when new_window equals "no" the rows 
+# have no values and therefore we can eliminate those columns from further 
+# consideration.
+
+dim(dataset)
+
+l <- nrow(dataset[dataset$new_window!="yes",])
+c <- complete.cases(dataset[dataset$new_window!="yes",
+                       -c(identifiers, predictors, outcome)])
+n <- nrow(dataset) - l
+s <- sum(c)
+
+if (l!=length(c) | s !=0) {
+  print("For new_window != yes the columns not marked as predictors have values,
+        please check for any potential predictors missed in these columns before 
+        proceeding.")
+} else {
+  
+  print(sprintf("Rows where new_window==yes: %d", n)) 
+  
+  print(sprintf("Rows where new_window!=yes where the columns eliminated have valid values (should be zero): %d", s))
+}
+
+
+
+combos <- findLinearCombos(data.matrix(dataset[,predictors]))
+
+if (is.null(combos[2]) | length(combos[1])==0) {
+  print("Linear combinations exist, please check for any potential columns 
+        to be removed before proceeding ... " + combos)
+} else {
+  print("No linear combinations exist within in the predictors.")
+}
+
+#truncate the dataset to retain the outcome and predictors only 
+dataset <- dataset[,c(outcome, predictors)]
+
+```
+
+
+#### Data splitting
+We will split the dataset into training and testing sets. We will use the testing set to check for "out of sample" errors and accuracy of the model; while the training set will be used for training the model. 
+
+```{r echo=FALSE, warning=FALSE}
+
+set.seed(12345)
+
+train <- createDataPartition(dataset$classe, p=0.7, list=FALSE)
+
+training <- dataset[train,]
+testing <- dataset[-train,]
+
+print(sprintf("Training :%d", dim(training)))
+print(sprintf("Testing :%d", dim(testing)))
+```
+
+
+#### Model selection
+We have a classification problem, therefore models based on tree, 
+random forests, boosting can be considered. 
+
+The first run using "rpart" and preprocessing for "pca" returned an accuracy close to .49.   
+For the second run, "random forest"" was chosen to seek to improve accuracy. The model had to be tuned for performance as well as accuracy.
+
+For tuning and performance enhancement the following approaches were taken:
+
++ parallel processing - using the doParallel library
++ cross validation using "cv" and number of iterations set to 2 using the 
+trainControl function
++ the mtry was set to 27 in tuneGrid (based on a run, where 27 gave the best 
+accuracy)
++ the training data set was set to 0.2 and then subsequently increased to .7 
+to the call the createDataPartition to discover the above tuning values
+
+```{r echo=FALSE, eval=FALSE, warning=FALSE}
+
+library(doParallel)
+registerDoParallel(cores=2)
+
+ctrl <- trainControl(method="cv", number=2, returnData=FALSE,  
+                     returnResamp="none")
+
+tunegrd = expand.grid(mtry = c(27))
+
+model <- train(y=training$classe, x=training[,-1] , method="rf", 
+               trControl=ctrl, tuneGrid=tunegrd)
+
+model
+
+saveRDS(model, file="modelrf.rds")
+
+```
+
+
+#### Validation
+Using the testing data set aside, the model is validated. The confusionMatrix indicates an accuracy of around 99% using the random forest method.
+
+```{r echo=FALSE, eval=TRUE, warning=FALSE}
+
+model <- readRDS("modelrf.rds")
+
+model
+
+pred.classe <- predict(model, newdata=testing)
+
+cm <- confusionMatrix(pred.classe, testing$classe)
+
+cm$table
+
+print(sprintf("Accuracy: %f", cm$overall[[1]]))
+```
