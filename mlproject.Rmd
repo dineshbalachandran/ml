@@ -27,7 +27,7 @@ outcome <- 160   #the outcome column
 ```
 
 #### Feature selection
-The training dataset has around 19K rows and 160 columns, of these the first 7 are various "identifier" or bookeeping variables, the last column (classe) is the outcome we are interested in predicting. 
+The training dataset has around 19K rows and 160 columns, of these the first 7 are various "identifier" or book-keeping variables, the last column (classe) is the outcome we are interested in predicting. 
 
 The rest 152, are potential predictors. 
 
@@ -72,7 +72,7 @@ if (is.null(combos[2]) | length(combos[1])==0) {
   print("Linear combinations exist, please check for any potential columns 
         to be removed before proceeding ... " + combos)
 } else {
-  print("No linear combinations exist within in the predictors.")
+  print("No linear combinations exist within the predictors.")
 }
 
 #truncate the dataset to retain the outcome and predictors only 
